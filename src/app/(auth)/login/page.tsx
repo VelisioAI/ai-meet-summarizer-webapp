@@ -1,51 +1,38 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-  const [error, setError] = useState('');
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const callbackUrl = searchParams.get('redirectedFrom') || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
-    setError('');
-
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
 
     try {
-      // Use Supabase Auth for login
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) {
-        // Show error in UI
-        let errorMsg = 'Invalid email or password';
-        if (error.message && error.message.toLowerCase().includes('email not confirmed')) {
-          errorMsg = 'You need to verify your email address before logging in. Please check your inbox for the verification email.';
-        } else if (error.message) {
-          errorMsg = error.message;
-        }
-        setError(errorMsg);
-        setIsLoading(false);
-        return;
-      } else {
-        router.push(callbackUrl);
-        router.refresh();
+      if (signInError) {
+        throw signInError;
       }
-    } catch (error) {
-      setError('An error occurred. Please try again.');
+
+      router.push(callbackUrl);
+      router.refresh();
+    } catch (error: any) {
+      setError(error.message || 'An error occurred during login');
     } finally {
       setIsLoading(false);
     }
@@ -84,6 +71,8 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Email address"
               />
@@ -98,6 +87,8 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
               />
@@ -129,7 +120,7 @@ export default function LoginPage() {
               type="submit"
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Sign in
+{isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
         </form>
