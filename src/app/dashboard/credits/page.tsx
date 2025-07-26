@@ -1,54 +1,87 @@
-import { CheckCircleIcon } from '@heroicons/react/24/solid/index.js';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { CheckCircleIcon } from '@heroicons/react/24/outline/index.js';
+import { getUserProfile } from '@/lib/api';
 
 const plans = [
   {
-    name: 'Starter',
-    price: 9,
+    id: 'credit_100',
+    name: '100 Credits',
+    price: 4.99,
+    credits: 100,
     description: 'Perfect for individuals getting started with meeting summaries.',
     features: [
-      '10 meeting summaries per month',
+      '100 meeting credits',
       'Basic summary templates',
       'Email support',
-      'Export to PDF',
     ],
     featured: false,
   },
   {
-    name: 'Professional',
-    price: 29,
+    id: 'credit_500',
+    name: '500 Credits',
+    price: 19.99,
+    credits: 500,
     description: 'For professionals who need more frequent meeting summaries.',
     features: [
-      '50 meeting summaries per month',
+      '500 meeting credits',
       'Advanced summary templates',
       'Priority email support',
       'Export to PDF & DOCX',
-      'Custom branding',
     ],
     featured: true,
   },
   {
-    name: 'Enterprise',
-    price: 99,
+    id: 'credit_1000',
+    name: '1000 Credits',
+    price: 34.99,
+    credits: 1000,
     description: 'For teams and organizations with high-volume needs.',
     features: [
-      'Unlimited meeting summaries',
+      '1000 meeting credits',
       'All Professional features',
       '24/7 priority support',
       'Team collaboration',
-      'API access',
-      'Custom templates',
     ],
     featured: false,
   },
 ];
 
 export default function BuyCredits() {
+  const [credits, setCredits] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        setLoading(true);
+        const response = await getUserProfile();
+        setCredits(response.data.credits);
+      } catch (error) {
+        console.error('Failed to fetch credits:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCredits();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="pb-5 border-b border-gray-200">
         <h1 className="text-2xl font-bold leading-6 text-gray-900">Buy Credits</h1>
         <p className="mt-2 text-sm text-gray-500">
-          Choose a plan that works best for you. Credits never expire.
+          Current credits: <span className="font-semibold">{credits}</span>
         </p>
       </div>
 
@@ -57,7 +90,7 @@ export default function BuyCredits() {
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             {plans.map((plan) => (
               <div
-                key={plan.name}
+                key={plan.id}
                 className={`relative rounded-2xl border ${
                   plan.featured ? 'border-indigo-600' : 'border-gray-200'
                 } bg-white p-8 shadow-sm`}
@@ -73,7 +106,6 @@ export default function BuyCredits() {
                   <span className="text-4xl font-bold tracking-tight text-gray-900">
                     ${plan.price}
                   </span>
-                  <span className="text-base font-medium text-gray-500">/month</span>
                 </p>
                 <ul role="list" className="mt-6 space-y-4">
                   {plan.features.map((feature) => (
@@ -94,7 +126,7 @@ export default function BuyCredits() {
                       : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
                   }`}
                 >
-                  Get started
+                  Buy Now
                 </button>
               </div>
             ))}

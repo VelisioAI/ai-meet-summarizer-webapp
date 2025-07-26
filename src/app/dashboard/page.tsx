@@ -1,6 +1,54 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { PlusIcon, DocumentTextIcon } from '@heroicons/react/24/outline/index.js';
+import { getUserProfile, getUserHistory } from '@/lib/api';
 
 export default function DashboardHome() {
+  const [stats, setStats] = useState({
+    totalMeetings: 0,
+    credits: 0,
+    summariesGenerated: 0,
+  });
+  const [recentSummaries, setRecentSummaries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch user profile for credits
+        const profile = await getUserProfile();
+        
+        // Fetch recent summaries
+        const history = await getUserHistory(3, 0);
+        
+        setStats({
+          credits: profile.data.credits,
+          totalMeetings: history.data.pagination.total,
+          summariesGenerated: history.data.pagination.total,
+        });
+        
+        setRecentSummaries(history.data.items);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="pb-5 border-b border-gray-200 sm:flex sm:items-center sm:justify-between">
@@ -19,9 +67,8 @@ export default function DashboardHome() {
       <div className="mt-8">
         <h2 className="text-lg font-medium text-gray-900">Recent Summaries</h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Summary Cards */}
-          {[1, 2, 3].map((item) => (
-            <div key={item} className="bg-white overflow-hidden shadow rounded-lg">
+          {recentSummaries.map((summary) => (
+            <div key={summary.id} className="bg-white overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 bg-indigo-500 rounded-md p-3">
@@ -30,11 +77,11 @@ export default function DashboardHome() {
                   <div className="ml-5 w-0 flex-1">
                     <dl>
                       <dt className="text-sm font-medium text-gray-500 truncate">
-                        Meeting {item}
+                        {summary.title || 'Untitled Meeting'}
                       </dt>
                       <dd className="flex items-baseline">
                         <div className="text-2xl font-semibold text-gray-900">
-                          Team Sync
+                          {new Date(summary.created_at).toLocaleDateString()}
                         </div>
                       </dd>
                     </dl>
@@ -42,18 +89,18 @@ export default function DashboardHome() {
                 </div>
                 <div className="mt-4">
                   <div className="text-sm text-gray-500">
-                    <p>Last updated: {new Date().toLocaleDateString()}</p>
+                    <p>Last updated: {new Date(summary.updated_at).toLocaleDateString()}</p>
                   </div>
                 </div>
               </div>
               <div className="bg-gray-50 px-4 py-4 sm:px-6">
                 <div className="text-sm">
-                  <a
-                    href="#"
+                  <Link
+                    href={`/dashboard/summaries/${summary.id}`}
                     className="font-medium text-indigo-600 hover:text-indigo-500"
                   >
                     View summary
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -65,23 +112,14 @@ export default function DashboardHome() {
         <h2 className="text-lg font-medium text-gray-900">Quick Stats</h2>
         <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { name: 'Total Meetings', value: '24', change: '+2', changeType: 'positive' },
-            { name: 'Credits Remaining', value: '5', change: '-1', changeType: 'negative' },
-            { name: 'Summaries Generated', value: '18', change: '+3', changeType: 'positive' },
+            { name: 'Total Meetings', value: stats.totalMeetings },
+            { name: 'Credits Remaining', value: stats.credits },
+            { name: 'Summaries Generated', value: stats.summariesGenerated },
           ].map((stat) => (
             <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
-                <dd className="mt-1 flex items-baseline">
-                  <div className="text-2xl font-semibold text-gray-900">{stat.value}</div>
-                  <div
-                    className={`ml-2 flex items-baseline text-sm font-semibold ${
-                      stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {stat.change}
-                  </div>
-                </dd>
+                <dd className="mt-1 text-2xl font-semibold text-gray-900">{stat.value}</dd>
               </div>
             </div>
           ))}
