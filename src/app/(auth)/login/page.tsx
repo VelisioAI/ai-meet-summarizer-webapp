@@ -29,6 +29,18 @@ export default function LoginPage() {
         throw signInError;
       }
 
+      // Sync user with backend
+      if (data?.user) {
+        try {
+          // Dynamically import to avoid SSR issues
+          const { syncUser } = await import('@/lib/api');
+          await syncUser(data.user);
+        } catch (syncError: any) {
+          // Optionally log or show error, but don't block login
+          console.error('User sync failed:', syncError);
+        }
+      }
+
       router.push(callbackUrl);
       router.refresh();
     } catch (error: any) {

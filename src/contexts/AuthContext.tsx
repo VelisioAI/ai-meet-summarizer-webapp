@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { useRouter } from 'next/navigation';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { syncUser } from '@/lib/api';
 
 type AuthContextType = {
   user: User | null;
@@ -21,25 +22,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-    });
+    };
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: Session | null) => {
+    getInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Redirect to dashboard after successful sign in
-      if (event === 'SIGNED_IN') {
-        router.push('/dashboard');
+      if (event === 'SIGNED_IN' && session?.user) {
+        try {
+          await syncUser(session.user);
+          router.push('/dashboard');
+        } catch (error) {
+          console.error('Failed to sync user:', error);
+        }
       }
 
-      // Redirect to login after sign out
       if (event === 'SIGNED_OUT') {
         router.push('/login');
       }
@@ -61,7 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signOut,
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

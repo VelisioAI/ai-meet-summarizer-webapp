@@ -9,7 +9,12 @@ export function Sidebar() {
 
   const navigation = [
     { name: 'Home', href: '/dashboard', icon: HomeIcon, current: pathname === '/dashboard' },
-    { name: 'Detailed Summaries', href: '/dashboard/summaries', icon: DocumentTextIcon, current: pathname === '/dashboard/summaries' },
+    { 
+      name: 'Detailed Summaries', 
+      href: '/dashboard/summaries', 
+      icon: DocumentTextIcon, 
+      current: pathname.startsWith('/dashboard/summaries') 
+    },
     { name: 'Buy Credits', href: '/dashboard/credits', icon: CreditCardIcon, current: pathname === '/dashboard/credits' },
   ];
 
