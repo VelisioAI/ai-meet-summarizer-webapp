@@ -11,38 +11,72 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables in middleware');
 }
 
+// Public paths that don't require authentication
+const publicPaths = ['/login', '/signup', '/', '/forgot-password', '/reset-password'];
+
+// API routes that don't require authentication
+const publicApiRoutes = ['/api/auth/callback', '/api/health'];
+
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+  const { pathname } = req.nextUrl;
+  
+  // Skip middleware for public paths and API routes
+  if (
+    publicPaths.some(path => pathname.startsWith(path)) ||
+    publicApiRoutes.some(route => pathname.startsWith(route))
+  ) {
+    return NextResponse.next();
+  }
+
+  const res = NextResponse.next();
   const supabase = createMiddlewareClient(
     { req, res },
     {
       supabaseUrl,
       supabaseKey: supabaseAnonKey,
     }
-  )
+  );
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  // If user is not signed in and the current path is not /login or /signup
-  if (!session && !req.nextUrl.pathname.startsWith('/login') && !req.nextUrl.pathname.startsWith('/signup')) {
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/login'
-    redirectUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
+  // Get the session
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  // Check for API token in cookies or headers for API routes
+  const isApiRoute = pathname.startsWith('/api');
+  const apiToken = req.cookies.get('apiToken') || 
+                  req.headers.get('authorization')?.replace('Bearer ', '');
+  
+  // For API routes, check for a valid API token
+  if (isApiRoute) {
+    if (!apiToken) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Authentication required' }), 
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    // Optionally validate the API token here if needed
+    return res;
   }
 
-  // If user is signed in and the current path is /login or /signup
-  if (session && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+  // For non-API routes, check for a valid session
+  if (!session) {
+    // Redirect to login with the current path as the return URL
+    const loginUrl = new URL('/login', req.url);
+    loginUrl.searchParams.set('redirectedFrom', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
-  return res
+  return res;
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
