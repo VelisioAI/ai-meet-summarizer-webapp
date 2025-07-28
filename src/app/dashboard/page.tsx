@@ -116,7 +116,6 @@ export default function DashboardHome() {
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="bg-red-50 border-l-4 border-red-400 p-4">

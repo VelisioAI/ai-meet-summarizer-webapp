@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { useRouter } from 'next/navigation';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { syncUser } from '@/lib/api';
 
 // Define the shape of our API token response
 export type AuthTokens = {
@@ -463,7 +464,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     getAuthHeader,
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
