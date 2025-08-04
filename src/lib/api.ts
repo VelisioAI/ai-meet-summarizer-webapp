@@ -67,14 +67,20 @@ export const apiFetch = async <T>(
     };
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // Determine if we're making a cross-origin request
+  const isCrossOrigin = new URL(API_BASE_URL).origin !== window.location.origin;
+  
+  const fetchOptions: RequestInit = {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    credentials: 'include', // Include cookies for cross-origin requests
-  });
+    // Only include credentials for same-origin or when explicitly needed
+    credentials: isCrossOrigin && process.env.NODE_ENV === 'production' ? 'include' : 'same-origin',
+  };
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
 
   // Handle 401 Unauthorized - try to refresh token
   if (response.status === 401 && !isAuthEndpoint) {
