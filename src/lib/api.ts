@@ -205,8 +205,6 @@ export async function refreshToken(): Promise<string | undefined> {
   }
 }
 
-
-
 // Helper to make authenticated API requests with token refresh
 export async function authenticatedFetch<T = any>(
   endpoint: string,
@@ -228,3 +226,18 @@ export async function authenticatedFetch<T = any>(
   // Make the request with the current token
   return apiFetch<T>(endpoint, options);
 }
+
+// Add the missing getUserProfile function
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  credits: number;
+  created_at: string;
+  updated_at?: string;
+  // Add other user profile fields as needed
+}
+
+export const getUserProfile = async (): Promise<{ success: boolean; data: UserProfile }> => {
+  return apiGet<{ success: boolean; data: UserProfile }>('/api/user');
+};
