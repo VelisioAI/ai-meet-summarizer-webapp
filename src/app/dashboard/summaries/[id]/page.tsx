@@ -11,7 +11,11 @@ import {
   SpeakerWaveIcon,
   ChatBubbleLeftRightIcon,
   ChevronDownIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  SparklesIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 interface TranscriptItem {
@@ -30,6 +34,12 @@ interface MeetingMetadata {
   [key: string]: any;
 }
 
+interface StatusInfo {
+  message: string;
+  estimatedTimeRemaining?: string;
+  canRetry?: boolean;
+}
+
 interface SummaryData {
   id: string;
   title: string;
@@ -39,12 +49,26 @@ interface SummaryData {
   meeting_metadata: MeetingMetadata | null;
   summary_status: string;
   created_at: string;
+  updated_at?: string;
   meeting_duration_minutes?: number;
+  statusInfo?: StatusInfo;
 }
 
 interface ApiResponse {
   success: boolean;
   data: SummaryData;
+  message?: string;
+}
+
+interface GenerateSummaryResponse {
+  success: boolean;
+  data: {
+    summaryId: string;
+    status: string;
+    estimatedTime: string;
+    creditsDeducted: number;
+    remainingCredits: number;
+  };
   message?: string;
 }
 
@@ -56,6 +80,7 @@ export default function SummaryDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFullTranscript, setShowFullTranscript] = useState(false);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
   const [expandedSections, setExpandedSections] = useState<{
     summary: boolean;
     transcript: boolean;
@@ -109,6 +134,84 @@ export default function SummaryDetail() {
     fetchSummary();
   }, [id, getAuthHeader]);
 
+  // Auto-refresh for pending summaries
+  useEffect(() => {
+    if (summary?.summary_status === 'pending') {
+      const interval = setInterval(async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+          const authHeader = getAuthHeader();
+          
+          const response = await fetch(`${apiUrl}/api/summary/${id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              ...authHeader,
+            },
+            credentials: process.env.NODE_ENV === 'production' ? 'include' : 'same-origin',
+          });
+
+          const resData: ApiResponse = await response.json();
+          if (resData.success && resData.data.summary_status !== 'pending') {
+            setSummary(resData.data);
+            clearInterval(interval);
+          }
+        } catch (error) {
+          console.error('Error polling summary status:', error);
+        }
+      }, 5000); // Poll every 5 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [summary?.summary_status, id, getAuthHeader]);
+
+  const handleGenerateSummary = async () => {
+    if (!summary || generatingSummary) return;
+
+    try {
+      setGeneratingSummary(true);
+      setError(null);
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const authHeader = getAuthHeader();
+
+      const response = await fetch(`${apiUrl}/api/summary`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeader,
+        },
+        credentials: process.env.NODE_ENV === 'production' ? 'include' : 'same-origin',
+        body: JSON.stringify({
+          transcript_id: summary.id,
+          title: summary.title
+        })
+      });
+
+      const resData: GenerateSummaryResponse = await response.json();
+
+      if (!response.ok || !resData.success) {
+        throw new Error(resData.message || 'Failed to generate AI summary');
+      }
+
+      // Update summary status to pending
+      setSummary(prev => prev ? {
+        ...prev,
+        summary_status: 'pending',
+        statusInfo: {
+          message: 'AI summary is being generated...',
+          estimatedTimeRemaining: resData.data.estimatedTime
+        }
+      } : null);
+
+    } catch (err: any) {
+      console.error('Error generating summary:', err);
+      setError(err?.message || 'Failed to generate AI summary');
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -130,16 +233,34 @@ export default function SummaryDetail() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      completed: { color: 'bg-green-100 text-green-800', text: 'Completed' },
-      pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Processing' },
-      failed: { color: 'bg-red-100 text-red-800', text: 'Failed' },
-      not_requested: { color: 'bg-gray-100 text-gray-800', text: 'Transcript Only' },
+      completed: { 
+        color: 'bg-green-100 text-green-800', 
+        text: 'AI Summary Complete',
+        icon: CheckCircleIcon
+      },
+      pending: { 
+        color: 'bg-blue-100 text-blue-800', 
+        text: 'Generating AI Summary',
+        icon: ArrowPathIcon
+      },
+      failed: { 
+        color: 'bg-red-100 text-red-800', 
+        text: 'AI Summary Failed',
+        icon: ExclamationTriangleIcon
+      },
+      not_requested: { 
+        color: 'bg-gray-100 text-gray-800', 
+        text: 'Transcript Only',
+        icon: DocumentTextIcon
+      },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.not_requested;
+    const Icon = config.icon;
     
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.color}`}>
+        <Icon className="w-4 h-4 mr-1" />
         {config.text}
       </span>
     );
@@ -150,6 +271,93 @@ export default function SummaryDetail() {
       ...prev,
       [section]: !prev[section]
     }));
+  };
+
+  const renderSummaryContent = () => {
+    if (!summary) return null;
+
+    if (summary.summary_status === 'pending') {
+      return (
+        <div className="text-center py-12 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
+          <div className="mt-4">
+            <h3 className="text-lg font-medium text-gray-900">AI Summary in Progress</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Our Gemini AI is analyzing your meeting transcript...
+            </p>
+            {summary.statusInfo?.estimatedTimeRemaining && (
+              <p className="text-xs text-indigo-600 mt-1">
+                ⏱️ Estimated time: {summary.statusInfo.estimatedTimeRemaining}
+              </p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (summary.summary_status === 'failed') {
+      return (
+        <div className="text-center py-8 bg-red-50 rounded-lg border border-red-200">
+          <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-red-400" />
+          <div className="mt-4">
+            <h3 className="text-lg font-medium text-red-900">AI Summary Failed</h3>
+            <p className="mt-2 text-sm text-red-700">
+              There was an issue generating the AI summary. Please try again.
+            </p>
+            <button
+              onClick={handleGenerateSummary}
+              disabled={generatingSummary}
+              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+            >
+              <SparklesIcon className="w-4 h-4 mr-2" />
+              {generatingSummary ? 'Retrying...' : 'Retry AI Summary'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (summary.summary_text) {
+      return (
+        <div className="prose max-w-none">
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 rounded-lg border border-purple-200">
+            <div className="flex items-center mb-4">
+              <SparklesIcon className="h-5 w-5 text-purple-600 mr-2" />
+              <span className="text-sm font-medium text-purple-600">Generated by Gemini AI</span>
+            </div>
+            <div 
+              className="prose prose-indigo max-w-none text-gray-800"
+              dangerouslySetInnerHTML={{ __html: summary.summary_text.replace(/\n/g, '<br/>') }}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // No summary requested
+    return (
+      <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+        <SparklesIcon className="mx-auto h-12 w-12 text-gray-400" />
+        <div className="mt-4">
+          <h3 className="text-lg font-medium text-gray-900">Generate AI Summary</h3>
+          <p className="mt-2 text-sm text-gray-600 max-w-md mx-auto">
+            Transform your meeting transcript into a structured, actionable summary using our advanced AI. 
+            Get key decisions, action items, and insights in seconds.
+          </p>
+          <div className="mt-6 space-y-2">
+            <button
+              onClick={handleGenerateSummary}
+              disabled={generatingSummary}
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all hover:scale-105"
+            >
+              <SparklesIcon className="w-5 h-5 mr-2" />
+              {generatingSummary ? 'Generating...' : 'Generate AI Summary'}
+            </button>
+            <p className="text-xs text-gray-500">💎 Costs 1 credit • Powered by Google Gemini</p>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderTranscript = () => {
@@ -179,7 +387,7 @@ export default function SummaryDetail() {
     return (
       <div className="space-y-4">
         {displayItems.map((item, index) => (
-          <div key={index} className="flex space-x-3 p-4 bg-gray-50 rounded-lg">
+          <div key={index} className="flex space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
             <div className="flex-shrink-0">
               <SpeakerWaveIcon className="h-5 w-5 text-gray-400 mt-0.5" />
             </div>
@@ -207,7 +415,7 @@ export default function SummaryDetail() {
           <div className="text-center">
             <button
               onClick={() => setShowFullTranscript(!showFullTranscript)}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-500 hover:bg-indigo-50 rounded-md transition-colors"
             >
               {showFullTranscript ? 'Show Less' : `Show ${transcriptItems.length - 5} More Items`}
               <ChevronDownIcon 
@@ -223,7 +431,10 @@ export default function SummaryDetail() {
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
+          <p className="mt-4 text-sm text-gray-600">Loading meeting details...</p>
+        </div>
       </div>
     );
   }
@@ -278,7 +489,7 @@ export default function SummaryDetail() {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => router.push('/dashboard/summaries')}
-              className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-700"
+              className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
             >
               <ArrowLeftIcon className="h-5 w-5 mr-1" />
               Back to Summaries
@@ -319,9 +530,12 @@ export default function SummaryDetail() {
         <div className="px-6 py-4 border-b border-gray-200">
           <button
             onClick={() => toggleSection('summary')}
-            className="flex items-center justify-between w-full text-left"
+            className="flex items-center justify-between w-full text-left hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors"
           >
-            <h3 className="text-lg font-medium text-gray-900">AI Summary</h3>
+            <div className="flex items-center">
+              <SparklesIcon className="h-5 w-5 text-purple-600 mr-2" />
+              <h3 className="text-lg font-medium text-gray-900">AI Summary</h3>
+            </div>
             <ChevronRightIcon 
               className={`h-5 w-5 text-gray-400 transform transition-transform ${expandedSections.summary ? 'rotate-90' : ''}`} 
             />
@@ -329,26 +543,7 @@ export default function SummaryDetail() {
         </div>
         {expandedSections.summary && (
           <div className="px-6 py-4">
-            {summary.summary_text ? (
-              <div className="prose max-w-none">
-                <div className="whitespace-pre-wrap text-gray-700 bg-gray-50 p-4 rounded-lg">
-                  {summary.summary_text}
-                </div>
-              </div>
-            ) : summary.summary_status === 'pending' ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
-                <p className="mt-2 text-sm text-gray-500">AI summary is being generated...</p>
-              </div>
-            ) : summary.summary_status === 'failed' ? (
-              <div className="text-center py-8 text-red-600">
-                <p>Failed to generate AI summary. Please try again later.</p>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>No AI summary was requested for this meeting.</p>
-              </div>
-            )}
+            {renderSummaryContent()}
           </div>
         )}
       </div>
@@ -358,9 +553,12 @@ export default function SummaryDetail() {
         <div className="px-6 py-4 border-b border-gray-200">
           <button
             onClick={() => toggleSection('transcript')}
-            className="flex items-center justify-between w-full text-left"
+            className="flex items-center justify-between w-full text-left hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors"
           >
-            <h3 className="text-lg font-medium text-gray-900">Meeting Transcript</h3>
+            <div className="flex items-center">
+              <DocumentTextIcon className="h-5 w-5 text-gray-600 mr-2" />
+              <h3 className="text-lg font-medium text-gray-900">Meeting Transcript</h3>
+            </div>
             <ChevronRightIcon 
               className={`h-5 w-5 text-gray-400 transform transition-transform ${expandedSections.transcript ? 'rotate-90' : ''}`} 
             />
@@ -379,9 +577,12 @@ export default function SummaryDetail() {
           <div className="px-6 py-4 border-b border-gray-200">
             <button
               onClick={() => toggleSection('metadata')}
-              className="flex items-center justify-between w-full text-left"
+              className="flex items-center justify-between w-full text-left hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors"
             >
-              <h3 className="text-lg font-medium text-gray-900">Meeting Details</h3>
+              <div className="flex items-center">
+                <ChatBubbleLeftRightIcon className="h-5 w-5 text-blue-600 mr-2" />
+                <h3 className="text-lg font-medium text-gray-900">Meeting Details</h3>
+              </div>
               <ChevronRightIcon 
                 className={`h-5 w-5 text-gray-400 transform transition-transform ${expandedSections.metadata ? 'rotate-90' : ''}`} 
               />
@@ -412,7 +613,7 @@ export default function SummaryDetail() {
                         href={summary.meeting_metadata.meeting_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-indigo-600 hover:text-indigo-500"
+                        className="text-indigo-600 hover:text-indigo-500 underline"
                       >
                         {summary.meeting_metadata.meeting_url}
                       </a>
