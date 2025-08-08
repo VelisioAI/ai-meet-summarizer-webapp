@@ -12,15 +12,17 @@ type Summary = {
 };
 
 type Transaction = {
-  change: number;
+  id: string;
+  amount: number;
   reason: string;
   date: string;
 };
 
-type CreditStats = {
+type CreditInfo = {
   currentBalance: number;
   totalUsed: number;
-  recentTransactions: Transaction[];
+  totalEarned: number;
+  usagePercentage: number;
 };
 
 type UserProfile = {
@@ -36,8 +38,8 @@ type DashboardResponse = {
   data: {
     user: UserProfile;
     recentSummaries: Summary[];
+    creditInfo: CreditInfo;
     recentTransactions: Transaction[];
-    creditsUsed: number;
   };
 };
 
@@ -47,7 +49,8 @@ export default function DashboardHome() {
   const [dashboardData, setDashboardData] = useState<{
     userProfile: UserProfile;
     recentSummaries: Summary[];
-    creditStats: CreditStats;
+    creditInfo: CreditInfo;
+    recentTransactions: Transaction[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,16 +84,11 @@ export default function DashboardHome() {
           throw new Error('Failed to fetch dashboard data');
         }
 
-        const creditStats: CreditStats = {
-          currentBalance: resData.data.user.credits,
-          totalUsed: resData.data.creditsUsed,
-          recentTransactions: resData.data.recentTransactions || [],
-        };
-
         setDashboardData({
           userProfile: resData.data.user,
           recentSummaries: resData.data.recentSummaries,
-          creditStats,
+          creditInfo: resData.data.creditInfo,
+          recentTransactions: resData.data.recentTransactions || [],
         });
       } catch (err: any) {
         setError(err?.message || 'Unknown error occurred.');
@@ -102,20 +100,18 @@ export default function DashboardHome() {
     fetchDashboardData();
   }, [getAuthHeader]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
-  };
 
   const handleViewDetails = (summaryId: string) => {
     router.push(`/dashboard/summaries/${summaryId}`);
   };
 
   const handleNewMeeting = () => {
-    // You can either redirect to summaries page or show instructions for using the extension
     router.push('/dashboard/summaries');
   };
 
@@ -133,7 +129,11 @@ export default function DashboardHome() {
         <div className="flex">
           <div className="flex-shrink-0">
             <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
             </svg>
           </div>
           <div className="ml-3">
@@ -153,7 +153,7 @@ export default function DashboardHome() {
     );
   }
 
-  const { userProfile, recentSummaries, creditStats } = dashboardData;
+  const { userProfile, recentSummaries, creditInfo, recentTransactions } = dashboardData;
 
   return (
     <div className="space-y-8 p-4 sm:p-6">
@@ -165,33 +165,54 @@ export default function DashboardHome() {
 
       {/* Credit Stats */}
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Credit Balance</h2>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Credit Overview</h2>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div className="bg-indigo-50 px-4 py-5 sm:p-6 rounded-lg">
             <dt className="text-sm font-medium text-indigo-600 truncate">Current Balance</dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">{creditStats.currentBalance}</dd>
+            <dd className="mt-1 text-3xl font-semibold text-gray-900">{creditInfo.currentBalance}</dd>
           </div>
           <div className="bg-green-50 px-4 py-5 sm:p-6 rounded-lg">
             <dt className="text-sm font-medium text-green-600 truncate">Total Used</dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">{creditStats.totalUsed}</dd>
+            <dd className="mt-1 text-3xl font-semibold text-gray-900">{creditInfo.totalUsed}</dd>
           </div>
           <div className="bg-white px-4 py-5 sm:p-6 rounded-lg border border-gray-200">
-            <dt className="text-sm font-medium text-gray-600 truncate">Recent Transactions</dt>
-            <dd className="mt-1 text-sm text-gray-900 space-y-2">
-              {creditStats.recentTransactions.length > 0 ? (
-                creditStats.recentTransactions.slice(0, 3).map((tx, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <span className="truncate">{tx.reason}</span>
-                    <span className={`ml-2 font-medium ${tx.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {tx.change >= 0 ? '+' : ''}{tx.change}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500">No recent transactions</p>
-              )}
+            <dt className="text-sm font-medium text-gray-600 truncate">Usage Progress</dt>
+            <dd className="mt-1">
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className="bg-indigo-600 h-3 rounded-full"
+                  style={{ width: `${creditInfo.usagePercentage}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{creditInfo.usagePercentage}% of your credits have been used</p>
             </dd>
           </div>
+        </div>
+
+        {/* Recent Transactions */}
+        <div className="mt-6">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Recent Transactions</h3>
+          {recentTransactions.length > 0 ? (
+            <ul className="divide-y divide-gray-200">
+              {recentTransactions.slice(0, 3).map((tx) => (
+                <li key={tx.id} className="py-2 flex justify-between items-center">
+                  <span>{tx.reason}</span>
+                  <span className={`font-medium ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {tx.amount >= 0 ? '+' : ''}
+                    {tx.amount}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500">No recent transactions</p>
+          )}
+          <button
+            onClick={() => router.push('/dashboard/credits')}
+            className="mt-3 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            View All →
+          </button>
         </div>
       </div>
 
@@ -215,7 +236,10 @@ export default function DashboardHome() {
           {recentSummaries.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {recentSummaries.map((summary) => (
-                <div key={summary.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div
+                  key={summary.id}
+                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                >
                   <div className="flex items-start">
                     <div className="flex-shrink-0 bg-indigo-100 rounded-md p-3">
                       <DocumentTextIcon className="h-6 w-6 text-indigo-600" />
@@ -225,7 +249,7 @@ export default function DashboardHome() {
                       <p className="mt-1 text-xs text-gray-500">{formatDate(summary.createdAt)}</p>
                       <div className="mt-2 flex justify-between items-center">
                         <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">Completed</span>
-                        <button 
+                        <button
                           onClick={() => handleViewDetails(summary.id)}
                           className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-500"
                         >
@@ -242,7 +266,9 @@ export default function DashboardHome() {
             <div className="text-center py-12">
               <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No summaries created yet</h3>
-              <p className="mt-1 text-sm text-gray-500">Get started by recording a meeting with the Chrome extension.</p>
+              <p className="mt-1 text-sm text-gray-500">
+                Get started by recording a meeting with the Chrome extension.
+              </p>
               <div className="mt-6">
                 <button
                   onClick={handleNewMeeting}
