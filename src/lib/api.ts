@@ -227,7 +227,35 @@ export async function authenticatedFetch<T = any>(
   return apiFetch<T>(endpoint, options);
 }
 
-// Add the missing getUserProfile function
+// Enhanced Summary-specific API functions
+export interface TranscriptItem {
+  timestamp?: string;
+  speaker?: string;
+  text: string;
+  startTime?: number;
+  endTime?: number;
+}
+
+export interface MeetingMetadata {
+  duration_minutes?: number;
+  participants?: string[];
+  meeting_title?: string;
+  meeting_url?: string;
+  [key: string]: any;
+}
+
+export interface SummaryData {
+  id: string;
+  title: string;
+  summary_text: string | null;
+  transcript_text: string;
+  transcript_json: TranscriptItem[] | null;
+  meeting_metadata: MeetingMetadata | null;
+  summary_status: string;
+  created_at: string;
+  meeting_duration_minutes?: number;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -235,9 +263,102 @@ export interface UserProfile {
   credits: number;
   created_at: string;
   updated_at?: string;
-  // Add other user profile fields as needed
 }
 
+export interface SummaryHistoryItem {
+  id: string;
+  title: string;
+  summary_status: string;
+  created_at: string;
+  has_summary: boolean;
+}
+
+export interface SummaryHistoryResponse {
+  success: boolean;
+  data: {
+    items: SummaryHistoryItem[];
+    pagination: {
+      total: number;
+      limit: number;
+      offset: number;
+      hasMore: boolean;
+    };
+  };
+}
+
+// Get user profile
 export const getUserProfile = async (): Promise<{ success: boolean; data: UserProfile }> => {
   return apiGet<{ success: boolean; data: UserProfile }>('/api/user');
+};
+
+// Get user's summary history
+export const getUserHistory = async (limit = 10, offset = 0): Promise<SummaryHistoryResponse> => {
+  return apiGet<SummaryHistoryResponse>(`/api/user/history?limit=${limit}&offset=${offset}`);
+};
+
+// Get specific summary by ID
+export const getSummary = async (summaryId: string): Promise<{ success: boolean; data: SummaryData }> => {
+  return apiGet<{ success: boolean; data: SummaryData }>(`/api/summary/${summaryId}`);
+};
+
+// Create a new summary (AI processing)
+export const createSummary = async (data: {
+  title?: string;
+  transcript_id: string;
+  custom_prompt?: string;
+}): Promise<{ success: boolean; data: any }> => {
+  return apiPost<{ success: boolean; data: any }>('/api/summary', data);
+};
+
+// Process transcript (upload meeting data)
+export const processTranscript = async (data: {
+  title?: string;
+  transcript_text: string;
+  transcript_json?: TranscriptItem[];
+  meeting_metadata?: MeetingMetadata;
+  meeting_duration_minutes?: number;
+  should_summarize?: boolean;
+}): Promise<{ success: boolean; data: any }> => {
+  return apiPost<{ success: boolean; data: any }>('/api/transcript', data);
+};
+
+// Get dashboard data
+export const getDashboardData = async (): Promise<{
+  success: boolean;
+  data: {
+    user: UserProfile;
+    recentSummaries: Array<{
+      id: string;
+      title: string;
+      createdAt: string;
+    }>;
+    recentTransactions: Array<{
+      change: number;
+      reason: string;
+      date: string;
+    }>;
+    creditsUsed: number;
+  };
+}> => {
+  return apiGet<any>('/api/user/dashboard');
+};
+
+// Sync user with backend (for authentication)
+export const syncUser = async (token: string): Promise<{ success: boolean; data: any }> => {
+  return apiPost<{ success: boolean; data: any }>('/api/user/auth', { token });
+};
+
+export default {
+  getUserProfile,
+  getUserHistory,
+  getSummary,
+  createSummary,
+  processTranscript,
+  getDashboardData,
+  syncUser,
+  apiFetch,
+  apiGet,
+  apiPost,
+  apiPut,
+  apiDelete,
 };

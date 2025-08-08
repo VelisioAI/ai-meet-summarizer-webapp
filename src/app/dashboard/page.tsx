@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PlusIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, DocumentTextIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 type Summary = {
   id: string;
@@ -42,6 +43,7 @@ type DashboardResponse = {
 
 export default function DashboardHome() {
   const { getAuthHeader } = useAuth();
+  const router = useRouter();
   const [dashboardData, setDashboardData] = useState<{
     userProfile: UserProfile;
     recentSummaries: Summary[];
@@ -106,6 +108,15 @@ export default function DashboardHome() {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const handleViewDetails = (summaryId: string) => {
+    router.push(`/dashboard/summaries/${summaryId}`);
+  };
+
+  const handleNewMeeting = () => {
+    // You can either redirect to summaries page or show instructions for using the extension
+    router.push('/dashboard/summaries');
   };
 
   if (loading) {
@@ -190,11 +201,12 @@ export default function DashboardHome() {
           <h2 className="text-lg font-medium text-gray-900">Recent Summaries</h2>
           <div className="mt-3 sm:mt-0 sm:ml-4">
             <button
+              onClick={handleNewMeeting}
               type="button"
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
             >
               <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-              New Meeting
+              View All Meetings
             </button>
           </div>
         </div>
@@ -212,8 +224,14 @@ export default function DashboardHome() {
                       <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{summary.title}</h3>
                       <p className="mt-1 text-xs text-gray-500">{formatDate(summary.createdAt)}</p>
                       <div className="mt-2 flex justify-between items-center">
-                        <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">pending</span>
-                        <button className="text-sm font-medium text-indigo-600 hover:text-indigo-500">View details</button>
+                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">Completed</span>
+                        <button 
+                          onClick={() => handleViewDetails(summary.id)}
+                          className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                        >
+                          <EyeIcon className="h-4 w-4 mr-1" />
+                          View details
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -224,14 +242,15 @@ export default function DashboardHome() {
             <div className="text-center py-12">
               <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No summaries created yet</h3>
-              <p className="mt-1 text-sm text-gray-500">Get started by creating your first meeting summary.</p>
+              <p className="mt-1 text-sm text-gray-500">Get started by recording a meeting with the Chrome extension.</p>
               <div className="mt-6">
                 <button
+                  onClick={handleNewMeeting}
                   type="button"
                   className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
                 >
                   <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                  New Meeting
+                  View All Summaries
                 </button>
               </div>
             </div>
