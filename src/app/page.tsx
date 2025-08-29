@@ -193,7 +193,7 @@ const Home = () => {
   const headingOpacity = useTransform(scrollYProgress, [0, 0.9], [1, 0]);
 
   return (
-    <div className="min-h-[200vh] overflow-x-hidden relative cursor-none">
+    <div className="min-h-[200vh] pb-40 overflow-x-hidden relative cursor-none">
       {/* Organic Flowing Background - Halo Style */}
       <div className="fixed inset-0 overflow-hidden bg-black">
         
@@ -279,7 +279,7 @@ const Home = () => {
       </div>
 
       {/* Hero Section */}
-      <section id="home" className="h-screen flex flex-col items-center justify-center relative z-10 px-4">
+      <section id="home" className="h-screen flex flex-col items-center justify-center relative z-10 px-4 pt-40">
         <motion.div
           style={{ scale: titleScale, y: titleY }}
           className="text-center mb-8"
@@ -348,7 +348,7 @@ const Home = () => {
 
       {/* Scrolled Content - Meeting Marquee */}
       <motion.section 
-        className="relative z-10 py-20"
+        className="relative z-10 py-40"
         style={{ 
           // Only apply fade animation on desktop (md and up)
           opacity: typeof window !== 'undefined' && window.innerWidth >= 768 ? marqueeOpacity : 1 
@@ -388,7 +388,7 @@ const Home = () => {
       </motion.section>
 
       {/* Features Section */}
-      <section id="features" className="relative py-20 md:min-h-screen flex flex-col justify-center items-center overflow-hidden">
+      <section id="features" className="relative py-40 md:min-h-screen flex flex-col justify-center items-center overflow-hidden">
       {/* Gradient Heading */}
       <motion.h2
         initial={{ opacity: 0, y: 50 }}
@@ -556,7 +556,11 @@ const Home = () => {
       >
         <motion.button
           className="bg-black/70 backdrop-blur-md border border-green-500/40 rounded-full px-5 py-2 text-white font-bold text-lg shadow-lg"
-          whileHover={{ scale: 1.05 }}
+          whileHover={{ 
+            scale: 1.05,
+            backgroundColor: "rgba(1, 42, 32, 0.7)",
+            borderColor: "rgba(34, 197, 94, 0.5)",
+          }}
           whileTap={{ scale: 0.95 }}
         >
           SIGN UP NOW
@@ -567,7 +571,7 @@ const Home = () => {
   </div>
 </section>
 
-<section id="pricing" className="relative min-h-screen flex flex-col justify-center items-center overflow-hidden px-6 pt-20">
+<section id="pricing" className="relative min-h-screen flex flex-col justify-center items-center overflow-hidden px-6 pt-40">
       {/* Heading */}
       <motion.h2
         initial={{ opacity: 0, y: 20 }}
@@ -592,7 +596,7 @@ const Home = () => {
             className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/10 hover:border-green-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 h-full flex flex-col"
           >
             {/* Plan Title */}
-            <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-white via-green-100 to-green-400 bg-clip-text text-transparent">
+            <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-white to-green-400 bg-clip-text text-transparent">
               {plan.title}
             </h3>
             <p className="text-gray-300/80 mb-4 text-base font-medium">{plan.description}</p>
@@ -638,7 +642,7 @@ const Home = () => {
       </section>
 
       {/* About the Extension Section */}
-      <section id="about" className="relative pt-45 pb-20 overflow-hidden">
+      <section id="about" className="relative pt-40 pb-20 overflow-hidden">
         <div className="relative max-w-7xl mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -650,7 +654,7 @@ const Home = () => {
             <h2 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-white via-green-200 to-green-700 bg-clip-text text-transparent mb-8 drop-shadow-2xl">
               About the Extension
             </h2>
-            <p className="text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed mb-10">
+            <p className="text-xl text-gray-300 leading-relaxed mb-10">
               SummarizeAI is a powerful browser extension that transforms your meeting experience by providing real-time, AI-powered summaries of your Google Meet, Zoom, and Microsoft Teams calls.
             </p>
             <motion.button
@@ -700,7 +704,7 @@ const Home = () => {
       </section>
 
       {/* Contact Us Section */}
-      <section id="contact" className="relative pt-32 pb-20 overflow-hidden">
+      <section id="contact" className="relative pt-40 pb-32 overflow-hidden">
         <div className="relative max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <motion.div

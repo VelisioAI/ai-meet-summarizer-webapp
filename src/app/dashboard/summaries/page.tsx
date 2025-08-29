@@ -5,6 +5,7 @@ import { DocumentTextIcon, EyeIcon, ClockIcon, CalendarIcon } from '@heroicons/r
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
 type Summary = {
   id: string;
@@ -114,15 +115,17 @@ export default function SummariesPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-900/30 text-green-400 border border-green-500/30';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30';
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-900/30 text-red-400 border border-red-500/30';
       case 'not_requested':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-800/30 text-gray-400 border border-gray-700/50';
+      case 'processing':
+        return 'bg-blue-900/30 text-blue-400 border border-blue-500/30';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-800/30 text-gray-400 border border-gray-700/50';
     }
   };
 
@@ -156,132 +159,135 @@ export default function SummariesPage() {
   }
 
   return (
-    <div className="space-y-8 p-4 sm:p-6">
-      <div className="bg-white shadow rounded-lg p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Your Meeting Summaries</h1>
-        <p className="text-gray-600 mt-2">
-          Review all your past meetings and transcripts.
-          {pagination && (
-            <span className="ml-2 text-sm">
-              Showing {summaries.length} of {pagination.total} total
-            </span>
-          )}
-        </p>
-      </div>
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Your Meeting Summaries</h1>
+          <p className="text-gray-400">
+            Review all your past meetings and transcripts
+            {pagination && (
+              <span className="ml-2 text-sm bg-gray-800/50 text-gray-300 px-2 py-1 rounded-md">
+                Showing {summaries.length} of {pagination.total} total
+              </span>
+            )}
+          </p>
+        </div>
 
-      {Array.isArray(summaries) && summaries.length > 0 ? (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
+        {/* Summaries Grid */}
+        {Array.isArray(summaries) && summaries.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6">
             {summaries.map((summary) => (
-              <li key={summary.id}>
-                <div className="px-4 py-4 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <DocumentTextIcon className="h-10 w-10 text-gray-400" />
+              <motion.div 
+                key={summary.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="bg-black/30 backdrop-blur-lg border border-gray-700/50 rounded-2xl p-6 hover:border-green-500/30 transition-all duration-300 group"
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between">
+                  <div className="flex items-start space-x-4">
+                    <div className="p-3 rounded-xl bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
+                      <DocumentTextIcon className="h-6 w-6 text-green-400" />
                     </div>
-                    <div className="ml-4 flex-1 min-w-0">
-                      <div className="flex items-center">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                    <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <h3 className="text-lg font-semibold text-white group-hover:text-green-400 transition-colors">
                           {summary.title}
-                        </p>
-                        <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(summary.summary_status)}`}>
+                        </h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(summary.summary_status)}`}>
                           {summary.summary_status.replace('_', ' ')}
                         </span>
                       </div>
-                      <div className="mt-2 flex items-center text-sm text-gray-500">
-                        <CalendarIcon className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                        <p>Created {formatDateTime(summary.created_at)}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-400">
+                        <div className="flex items-center">
+                          <CalendarIcon className="h-4 w-4 mr-1.5 text-gray-500" />
+                          <span>{formatDateTime(summary.created_at)}</span>
+                        </div>
                         {summary.has_summary && (
-                          <>
-                            <span className="mx-2">•</span>
-                            <p className="text-green-600">AI Summary Available</p>
-                          </>
+                          <div className="flex items-center text-green-400">
+                            <EyeIcon className="h-4 w-4 mr-1.5" />
+                            <span>Summary Available</span>
+                          </div>
                         )}
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleViewDetails(summary.id)}
-                      className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      <EyeIcon className="h-4 w-4 mr-2" />
-                      View Details
-                    </button>
-                  </div>
+                  <motion.button
+                    onClick={() => handleViewDetails(summary.id)}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="mt-4 md:mt-0 inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-green-600/80 hover:bg-green-600 text-white text-sm font-medium transition-colors group-hover:shadow-lg group-hover:shadow-green-500/10"
+                  >
+                    <EyeIcon className="h-4 w-4 mr-2" />
+                    View Details
+                  </motion.button>
                 </div>
-              </li>
+              </motion.div>
             ))}
-          </ul>
-
-          {/* Pagination */}
-          {pagination && pagination.hasMore && (
-            <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 flex justify-between sm:hidden">
-                  <button
-                    disabled={pagination.offset === 0}
-                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={!pagination.hasMore || loadingMore}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  >
-                    {loadingMore ? 'Loading...' : 'Next'}
-                  </button>
-                </div>
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      Showing <span className="font-medium">{pagination.offset + 1}</span> to{' '}
-                      <span className="font-medium">
-                        {Math.min(pagination.offset + pagination.limit, pagination.total)}
-                      </span>{' '}
-                      of <span className="font-medium">{pagination.total}</span> results
-                    </p>
-                  </div>
-                  <div>
-                    <button
-                      onClick={handleLoadMore}
-                      disabled={!pagination.hasMore || loadingMore}
-                      className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                      {loadingMore ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500 mr-2"></div>
-                          Loading...
-                        </>
-                      ) : (
-                        'Load More'
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="text-center py-12 bg-white shadow rounded-lg">
-          <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No meeting transcripts found</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Start recording meetings with the Chrome extension to see your transcripts here.
-          </p>
-          <div className="mt-6">
-            <button
-              type="button"
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <DocumentTextIcon className="-ml-1 mr-2 h-5 w-5" />
-              Install Chrome Extension
-            </button>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="text-center py-16 bg-gray-800/50 backdrop-blur-lg border border-gray-700/50 rounded-2xl">
+            <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-500 mb-4" />
+            <h3 className="text-lg font-medium text-gray-300">No summaries found</h3>
+            <p className="mt-2 text-gray-400">Your meeting summaries will appear here.</p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {pagination && (pagination.hasMore || pagination.offset > 0) && (
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors flex items-center"
+            >
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+              Back to top
+            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => {
+                  if (pagination.offset > 0) {
+                    const newOffset = Math.max(0, pagination.offset - pagination.limit);
+                    fetchSummaries(newOffset);
+                  }
+                }}
+                disabled={pagination.offset === 0}
+                className="px-4 py-2 rounded-lg border border-gray-700 text-sm font-medium text-gray-300 hover:bg-gray-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Previous
+              </button>
+              <button
+                onClick={handleLoadMore}
+                disabled={!pagination.hasMore || loadingMore}
+                className="px-4 py-2 rounded-lg bg-green-600/80 hover:bg-green-600 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+              >
+                {loadingMore ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    Next
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
