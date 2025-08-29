@@ -20,6 +20,7 @@ type AuthContextType = {
   apiToken: string | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
+  logout: () => Promise<void>;
   getAuthHeader: () => { Authorization: string } | {};
 };
 
@@ -225,7 +226,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             clearTokens();
             setSession(null);
             setUser(null);
-            setUserData(null);
             setApiToken(null);
             
             // Only redirect if we're not already on the login page
@@ -240,7 +240,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           clearTokens();
           setSession(null);
           setUser(null);
-          setUserData(null);
           setApiToken(null);
           
           // Only redirect if we're not already on a public page
@@ -387,11 +386,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [router, exchangeToken]);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    clearTokens();
-    setApiToken(null);
-  };
+  const logout = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+      clearTokens();
+      setUser(null);
+      setSession(null);
+      setApiToken(null);
+      router.push('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  }, [router]);
 
   // Helper function to get auth header for API requests
   const getAuthHeader = () => {
@@ -460,7 +466,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     apiToken,
     login,
-    signOut,
+    signOut: logout,
+    logout,
     getAuthHeader,
   };
 
