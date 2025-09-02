@@ -50,8 +50,9 @@ export default function SummariesPage() {
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       const authHeader = getAuthHeader();
+      const authToken = 'Authorization' in authHeader ? authHeader.Authorization : null;
 
-      if (!authHeader?.Authorization) {
+      if (!authToken) {
         setError('No authorization token found. Please log in again.');
         return;
       }
@@ -68,7 +69,7 @@ export default function SummariesPage() {
       const resData: SummaryHistoryResponse = await response.json();
 
       if (!response.ok || !resData.success) {
-        throw new Error(resData.message || 'Failed to fetch summary history');
+        throw new Error('message' in resData ? resData.message : 'Failed to fetch summary history');
       }
 
       if (append) {
@@ -77,8 +78,9 @@ export default function SummariesPage() {
         setSummaries(resData.data.items || []);
       }
       setPagination(resData.data.pagination);
-    } catch (err: any) {
-      setError(err?.message || 'Unknown error occurred.');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
     } finally {
       setLoading(false);
       setLoadingMore(false);

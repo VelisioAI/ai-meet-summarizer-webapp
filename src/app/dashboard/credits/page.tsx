@@ -52,6 +52,12 @@ export default function CreditsPage() {
       setLoading(true);
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       const authHeader = getAuthHeader();
+      const authToken = 'Authorization' in authHeader ? authHeader.Authorization : null;
+
+      if (!authToken) {
+        setError('No authorization token found. Please log in again.');
+        return;
+      }
 
       const res = await fetch(`${apiUrl}/api/credits/history?page=${page}`, {
         headers: { 'Content-Type': 'application/json', ...authHeader },
@@ -73,6 +79,13 @@ export default function CreditsPage() {
   const fetchProductList = async () => {
     try {
       const authHeader = getAuthHeader();
+      const authToken = 'Authorization' in authHeader ? authHeader.Authorization : null;
+      
+      if (!authToken) {
+        setError('No authorization token found. Please log in again.');
+        return;
+      }
+      
       const productList = await fetchProducts(authHeader);
       setProducts(productList);
     } catch (err: any) {
@@ -92,6 +105,14 @@ export default function CreditsPage() {
       setSelectedProduct(product);
       
       const authHeader = getAuthHeader();
+      const authToken = 'Authorization' in authHeader ? authHeader.Authorization : null;
+      
+      if (!authToken) {
+        setError('No authorization token found. Please log in again.');
+        setPaymentLoading(false);
+        return;
+      }
+      
       const paymentData = await createPaymentIntent(product.id, authHeader);
       
       setClientSecret(paymentData.clientSecret);
