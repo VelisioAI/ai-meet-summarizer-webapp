@@ -101,8 +101,9 @@ export default function SummaryDetail() {
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
         const authHeader = getAuthHeader();
+        const authToken = 'Authorization' in authHeader ? authHeader.Authorization : null;
 
-        if (!authHeader?.Authorization) {
+        if (!authToken) {
           setError('No authorization token found. Please log in again.');
           return;
         }
@@ -141,6 +142,13 @@ export default function SummaryDetail() {
         try {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
           const authHeader = getAuthHeader();
+          const authToken = 'Authorization' in authHeader ? authHeader.Authorization : null;
+          
+          if (!authToken) {
+            console.error('No authorization token found');
+            clearInterval(interval);
+            return;
+          }
           
           const response = await fetch(`${apiUrl}/api/summary/${id}`, {
             method: 'GET',
@@ -174,6 +182,12 @@ export default function SummaryDetail() {
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       const authHeader = getAuthHeader();
+      const authToken = 'Authorization' in authHeader ? authHeader.Authorization : null;
+
+      if (!authToken) {
+        setError('No authorization token found. Please log in again.');
+        return;
+      }
 
       const response = await fetch(`${apiUrl}/api/summary`, {
         method: 'POST',

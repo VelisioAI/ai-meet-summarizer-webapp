@@ -109,8 +109,9 @@ export default function DashboardHome() {
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
         const authHeader = getAuthHeader();
+        const authToken = 'Authorization' in authHeader ? authHeader.Authorization : null;
 
-        if (!authHeader?.Authorization) {
+        if (!authToken) {
           setError('No authorization token found. Please log in again.');
           return;
         }
