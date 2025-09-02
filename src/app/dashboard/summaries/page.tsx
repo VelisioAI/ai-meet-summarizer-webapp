@@ -69,7 +69,8 @@ export default function SummariesPage() {
       const resData: SummaryHistoryResponse = await response.json();
 
       if (!response.ok || !resData.success) {
-        throw new Error('message' in resData ? resData.message : 'Failed to fetch summary history');
+        const errorMessage = (resData as { message?: string }).message || 'Failed to fetch summary history';
+        throw new Error(errorMessage);
       }
 
       if (append) {
