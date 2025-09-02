@@ -2,6 +2,10 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Get Supabase URL and Anon Key from environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
 // Public paths that don't require authentication
 const publicPaths = ['/login', '/signup', '/', '/forgot-password', '/reset-password'];
 
