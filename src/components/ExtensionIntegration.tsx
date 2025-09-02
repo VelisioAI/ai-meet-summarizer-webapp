@@ -35,7 +35,7 @@ type ExtensionResponse = {
 const CHROME_EXTENSION_ID = process.env.NEXT_PUBLIC_CHROME_EXTENSION_ID || 'YOUR_EXTENSION_ID_HERE';
 
 export default function ExtensionIntegration() {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function ExtensionIntegration() {
     window.addEventListener('message', handleMessage);
 
     // If user is not logged in, try to trigger extension login
-    if (!isLoading && !user) {
+    if (!loading && !user) {
       triggerExtensionLogin();
     }
 
@@ -66,7 +66,7 @@ export default function ExtensionIntegration() {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [user, isLoading, router]);
+  }, [user, loading, router]);
 
   const triggerExtensionLogin = () => {
     // This URL will be handled by your Chrome extension
