@@ -19,6 +19,7 @@ type AuthContextType = {
   loading: boolean;
   apiToken: string | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   logout: () => Promise<void>;
   getAuthHeader: () => { Authorization: string } | {};
@@ -405,6 +406,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { Authorization: `Bearer ${apiToken}` };
   };
 
+  // Login with Google OAuth
+  const loginWithGoogle = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) {
+        console.error('Google OAuth error:', error);
+        return { success: false, error: error.message };
+      }
+
+      // The OAuth flow will redirect, so we don't need to handle the success case here
+      return { success: true };
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      return { success: false, error: err.message || 'Failed to sign in with Google' };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Login function that handles both Supabase auth and token exchange
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -466,6 +497,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     apiToken,
     login,
+    loginWithGoogle,
     signOut: logout,
     logout,
     getAuthHeader,
