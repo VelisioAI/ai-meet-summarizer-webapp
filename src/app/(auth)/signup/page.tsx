@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext'; // adjust path if different
+
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -15,10 +17,13 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const { loginWithGoogle } = useAuth();
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
 
     try {
       // First, sign up the user with Supabase
@@ -241,6 +246,28 @@ export default function SignupPage() {
               )}
             </button>
           </motion.div>
+          <motion.div
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.8 }}
+  className="mt-4"
+>
+  <button
+    type="button"
+    onClick={loginWithGoogle}
+    disabled={loading}
+    className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-700 rounded-lg text-white bg-black/30 hover:bg-black/40 focus:outline-none focus:ring-2 focus:ring-green-500/50 disabled:opacity-50 transition-all duration-200"
+  >
+    <svg className="w-5 h-5" viewBox="0 0 24 24">
+      <path fill="#EA4335" d="M12 10.2v3.6h5.1c-.2 1.2-.9 2.2-1.9 2.9l3.1 2.4c1.8-1.7 2.8-4.1 2.8-6.9 0-.6 0-1.2-.1-1.8H12z"/>
+      <path fill="#34A853" d="M6.5 14.3l-.9.7-2.4-1.8c1.3 2.6 3.9 4.4 6.8 4.4 2 0 3.6-.6 4.8-1.6l-3.1-2.4c-.9.6-2 .9-3.2.9-2.5 0-4.6-1.6-5.3-3.8z"/>
+      <path fill="#4A90E2" d="M20.6 7.5c-.8-.8-1.8-1.3-2.8-1.6-1-.3-2-.4-3-.4-2.9 0-5.4 1.8-6.8 4.4l2.4 1.8c.7-2.2 2.8-3.8 5.3-3.8 1.2 0 2.3.4 3.2.9l2.8-2.3z"/>
+      <path fill="#FBBC05" d="M3.2 6.2l2.4 1.8c1-1.9 3-3.2 5.3-3.2 1.2 0 2.3.3 3.2.9l2.8-2.3c-1.4-1-3.1-1.6-4.8-1.6-2.9 0-5.5 1.7-6.8 4.4z"/>
+    </svg>
+    <span>Sign up with Google</span>
+  </button>
+</motion.div>
+
         </motion.form>
 
         <motion.div 
